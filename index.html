@@ -5,78 +5,129 @@
   <title>剪貼簿工具</title>
   <style>
     body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      background: #f2f4f8;
-      margin: 0;
-      padding: 20px;
+      font-family: sans-serif;
+      background: #f5f7fa;
       text-align: center;
+      padding: 2em;
     }
     h1 {
-      color: #333;
+      margin-bottom: 1em;
     }
     #pasteZone {
-      border: 2px dashed #999;
-      border-radius: 10px;
+      border: 2px dashed #ccc;
       padding: 30px;
-      margin: 20px auto;
-      width: 80%;
+      min-height: 100px;
       background: #fff;
-      color: #666;
-      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 2em;
     }
-    .entry {
-      background: #fff;
-      padding: 15px;
-      margin: 10px auto;
-      border-radius: 8px;
-      width: 90%;
+    #records {
+      max-width: 500px;
+      margin: 2em auto;
       text-align: left;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .entry img {
-      max-width: 100%;
-      height: auto;
-      margin-top: 10px;
+    .record {
+      background: #fff;
+      padding: 1em;
+      border: 1px solid #ccc;
+      margin-bottom: 1em;
+      position: relative;
     }
-    .qr-section {
-      margin: 40px auto;
-      text-align: center;
-    }
-    .qr-section img {
-      width: 180px;
-      height: 180px;
-      border: 3px solid #333;
-      border-radius: 10px;
-    }
-    button {
+    .record button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
       background: #e74c3c;
-      color: #fff;
       border: none;
-      padding: 5px 10px;
-      border-radius: 5px;
-      float: right;
+      color: #fff;
+      padding: 0.3em 0.6em;
       cursor: pointer;
     }
-    button:hover {
-      background: #c0392b;
+    img.qr {
+      margin-top: 1em;
+      width: 160px;
+      height: 160px;
     }
   </style>
 </head>
 <body>
-
   <h1>剪貼簿工具</h1>
 
-  <div id="pasteZone" tabindex="0">
-    📋 點此區或直接 Ctrl+V 貼上文字或圖片
+  <div id="pasteZone" contenteditable="true">
+    點此區或直接 Ctrl+V 貼上文字或圖片
   </div>
 
-  <div class="qr-section">
-    <p>手機開啟網址</p>
-    <img src="qrcode.png" alt="QRCode 手機開啟用" />
-  </div>
+  <h3>手機開啟網址</h3>
+  <img class="qr" src="qrcode.png" alt="QR Code">
 
-  <div id="log"></div>
+  <div id="records"></div>
 
-  <script src="script.js"></script>
+  <script>
+    const pasteZone = document.getElementById("pasteZone");
+    const records = document.getElementById("records");
+
+    // 載入本地紀錄
+    const loadRecords = () => {
+      const data = JSON.parse(localStorage.getItem("clipRecords") || "[]");
+      data.forEach(addRecord);
+    };
+
+    // 加入一筆記錄
+    function addRecord(content, isImage = false) {
+      const div = document.createElement("div");
+      div.className = "record";
+
+      if (isImage) {
+        const img = document.createElement("img");
+        img.src = content;
+        img.style.maxWidth = "100%";
+        div.appendChild(img);
+      } else {
+        div.textContent = content;
+      }
+
+      const btn = document.createElement("button");
+      btn.textContent = "X";
+      btn.onclick = () => {
+        div.remove();
+        saveRecords();
+      };
+      div.appendChild(btn);
+      records.insertBefore(div, records.firstChild);
+      saveRecords();
+    }
+
+    // 儲存所有記錄
+    function saveRecords() {
+      const list = [];
+      records.querySelectorAll(".record").forEach(div => {
+        if (div.querySelector("img")) {
+          list.push([div.querySelector("img").src, true]);
+        } else {
+          list.push([div.textContent.replace("X", ""), false]);
+        }
+      });
+      localStorage.setItem("clipRecords", JSON.stringify(list));
+    }
+
+    // 貼上處理器
+    pasteZone.addEventListener("paste", async (e) => {
+      e.preventDefault();
+      const items = e.clipboardData.items;
+      for (const item of items) {
+        if (item.type.indexOf("image") !== -1) {
+          const file = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = () => addRecord(reader.result, true);
+          reader.readAsDataURL(file);
+        } else if (item.type === "text/plain") {
+          item.getAsString(str => addRecord(str));
+        }
+      }
+    });
+
+    // 初始化
+    loadRecords();
+  </script>
 </body>
 </html>
