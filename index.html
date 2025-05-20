@@ -1,82 +1,82 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>剪貼簿工具</title>
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #f2f4f8;
+      margin: 0;
       padding: 20px;
-      background-color: #f7f9fc;
+      text-align: center;
+    }
+    h1 {
       color: #333;
     }
-
-    h1 {
-      text-align: center;
-    }
-
-    .buttons {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    button {
-      padding: 10px 20px;
-      margin: 5px;
+    #pasteZone {
+      border: 2px dashed #999;
+      border-radius: 10px;
+      padding: 30px;
+      margin: 20px auto;
+      width: 80%;
+      background: #fff;
+      color: #666;
       font-size: 16px;
-      border: none;
-      background-color: #0078d4;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
     }
-
-    button:hover {
-      background-color: #005a9e;
-    }
-
-    #output {
-      max-width: 600px;
-      margin: 0 auto;
+    .entry {
       background: #fff;
       padding: 15px;
+      margin: 10px auto;
       border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      width: 90%;
+      text-align: left;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-
-    #output .entry {
-      border-bottom: 1px solid #ccc;
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-    }
-
-    #output img {
+    .entry img {
       max-width: 100%;
       height: auto;
       margin-top: 10px;
     }
-
-    #qrcode {
+    .qr-section {
+      margin: 40px auto;
       text-align: center;
-      margin-top: 20px;
+    }
+    .qr-section img {
+      width: 180px;
+      height: 180px;
+      border: 3px solid #333;
+      border-radius: 10px;
+    }
+    button {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      float: right;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #c0392b;
     }
   </style>
 </head>
 <body>
+
   <h1>剪貼簿工具</h1>
-  <div class="buttons">
-    <button id="pasteBtn">📋 貼上剪貼簿內容</button>
-    <button id="copyTextBtn">📝 複製文字</button>
-    <button id="copyImageBtn">🖼️ 複製圖片</button>
-  </div>
-  <div id="output"></div>
 
-  <div id="qrcode">
-    <h3>手機開啟網址</h3>
-    <canvas id="qrcode-canvas"></canvas>
+  <div id="pasteZone" tabindex="0">
+    📋 點此區或直接 Ctrl+V 貼上文字或圖片
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <div class="qr-section">
+    <p>手機開啟網址</p>
+    <img src="qrcode.png" alt="QRCode 手機開啟用" />
+  </div>
+
+  <div id="log"></div>
+
   <script src="script.js"></script>
 </body>
 </html>

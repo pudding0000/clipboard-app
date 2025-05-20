@@ -1,19 +1,8 @@
-// 網站網址（請改成你自己的網址）
-const siteURL = "https://你的帳號.github.io/clipboard-app/";
-
-// QR Code 產生
-const qrCanvas = document.getElementById("qrcode");
-new QRious({
-  element: qrCanvas,
-  value: siteURL,
-  size: 150
-});
-
 const log = document.getElementById("log");
 let history = JSON.parse(localStorage.getItem("clipboardHistory")) || [];
 let counter = history.length;
 
-// 將紀錄顯示出來（包括刪除按鈕）
+// 顯示紀錄
 function renderHistory() {
   log.innerHTML = "";
   history.forEach(entry => {
@@ -21,7 +10,7 @@ function renderHistory() {
     div.className = "entry";
     div.innerHTML = `
       <strong>#${entry.id}</strong> - ${entry.time}
-      <button style="float:right" onclick="deleteEntry(${entry.id})">❌</button><br>
+      <button onclick="deleteEntry(${entry.id})">❌</button><br>
       ${
         entry.type === "text"
           ? `<div>${entry.content}</div>`
@@ -42,7 +31,7 @@ function addEntry(type, content) {
   renderHistory();
 }
 
-// 刪除特定紀錄
+// 刪除一筆
 function deleteEntry(id) {
   history = history.filter(entry => entry.id !== id);
   localStorage.setItem("clipboardHistory", JSON.stringify(history));
@@ -68,5 +57,11 @@ document.addEventListener("paste", async (e) => {
   }
 });
 
-// 初始化：載入現有紀錄
+// 支援 div 接收 paste
+document.getElementById("pasteZone").focus();
+document.getElementById("pasteZone").addEventListener("paste", (e) => {
+  document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: e.clipboardData }));
+});
+
+// 初始顯示
 renderHistory();
