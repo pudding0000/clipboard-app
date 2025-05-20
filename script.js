@@ -61,7 +61,7 @@ document.getElementById('copyImageBtn').addEventListener('click', async () => {
 });
 
 // QR Code 產生
-const siteURL = window.location.href;
+const siteURL = https://pudding0000.github.io/clipboard-app/;
 const qrCanvas = document.getElementById('qrcode-canvas');
 QRCode.toCanvas(qrCanvas, siteURL, { width: 150 }, function (error) {
   if (error) console.error('QR code 產生失敗：', error);
