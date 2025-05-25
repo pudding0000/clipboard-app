@@ -1,133 +1,188 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>剪貼簿工具</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f5f7fa;
+      font-family: 'Noto Sans TC', sans-serif;
+      background: #f2f6fb;
       text-align: center;
-      padding: 2em;
-    }
-    h1 {
-      margin-bottom: 1em;
-    }
-    #pasteZone {
-      border: 2px dashed #ccc;
       padding: 30px;
-      min-height: 100px;
-      background: #fff;
-      cursor: pointer;
-      margin-bottom: 2em;
     }
-    #records {
-      max-width: 500px;
-      margin: 2em auto;
-      text-align: left;
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
     }
-    .record {
+
+    #dropZone {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      min-height: 150px;
+      padding: 20px;
+      width: 80%;
+      max-width: 600px;
+      margin: 0 auto 20px;
       background: #fff;
-      padding: 1em;
-      border: 1px solid #ccc;
-      margin-bottom: 1em;
+      outline: none;
+      font-size: 18px;
       position: relative;
     }
-    .record button {
+
+    #dropZone:empty::before {
+      content: "點此區或直接 Ctrl+V 貼上文字或圖片";
+      color: #aaa;
+      font-size: 18px;
       position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #e74c3c;
-      border: none;
-      color: #fff;
-      padding: 0.3em 0.6em;
-      cursor: pointer;
+      left: 20px;
+      top: 20px;
+      pointer-events: none;
     }
-    img.qr {
-      margin-top: 1em;
-      width: 160px;
-      height: 160px;
+
+    #history {
+      margin-top: 30px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .entry {
+      border: 1px solid #ddd;
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      text-align: left;
+      position: relative;
+    }
+
+    .entry img {
+      max-width: 100%;
+    }
+
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    #qrcode {
+      margin: 20px auto;
+      width: fit-content;
+    }
+
+    #mobileLink {
+      margin-top: 10px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>剪貼簿工具</h1>
 
-  <div id="pasteZone" contenteditable="true">
-    點此區或直接 Ctrl+V 貼上文字或圖片
-  </div>
+  <div id="dropZone" contenteditable="true"></div>
 
-  <h3>手機開啟網址</h3>
-  <img class="qr" src="qrcode.png" alt="QR Code">
+  <div id="mobileLink">手機開啟網址</div>
+  <canvas id="qrcode"></canvas>
 
-  <div id="records"></div>
+  <div id="history"></div>
 
   <script>
-    const pasteZone = document.getElementById("pasteZone");
-    const records = document.getElementById("records");
-
-    // 載入本地紀錄
-    const loadRecords = () => {
-      const data = JSON.parse(localStorage.getItem("clipRecords") || "[]");
-      data.forEach(addRecord);
+    // ✅ 替換為你的 Firebase 設定
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://clipboard-94696-default-rtdb.firebaseio.com/",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    // 加入一筆記錄
-    function addRecord(content, isImage = false) {
-      const div = document.createElement("div");
-      div.className = "record";
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      if (isImage) {
-        const img = document.createElement("img");
-        img.src = content;
-        img.style.maxWidth = "100%";
-        div.appendChild(img);
-      } else {
-        div.textContent = content;
-      }
+    const dropZone = document.getElementById("dropZone");
+    const historyDiv = document.getElementById("history");
 
-      const btn = document.createElement("button");
-      btn.textContent = "X";
-      btn.onclick = () => {
-        div.remove();
-        saveRecords();
-      };
-      div.appendChild(btn);
-      records.insertBefore(div, records.firstChild);
-      saveRecords();
-    }
-
-    // 儲存所有記錄
-    function saveRecords() {
-      const list = [];
-      records.querySelectorAll(".record").forEach(div => {
-        if (div.querySelector("img")) {
-          list.push([div.querySelector("img").src, true]);
-        } else {
-          list.push([div.textContent.replace("X", ""), false]);
-        }
-      });
-      localStorage.setItem("clipRecords", JSON.stringify(list));
-    }
-
-    // 貼上處理器
-    pasteZone.addEventListener("paste", async (e) => {
-      e.preventDefault();
+    // ✅ 處理貼上圖片或文字
+    dropZone.addEventListener("paste", (e) => {
       const items = e.clipboardData.items;
-      for (const item of items) {
-        if (item.type.indexOf("image") !== -1) {
+      e.preventDefault();
+      for (let item of items) {
+        if (item.type.startsWith("image/")) {
           const file = item.getAsFile();
           const reader = new FileReader();
-          reader.onload = () => addRecord(reader.result, true);
+          reader.onload = function(evt) {
+            saveToFirebase({ type: "image", content: evt.target.result });
+          };
           reader.readAsDataURL(file);
         } else if (item.type === "text/plain") {
-          item.getAsString(str => addRecord(str));
+          item.getAsString((text) => {
+            saveToFirebase({ type: "text", content: text });
+          });
+        }
+      }
+      dropZone.innerHTML = "";
+    });
+
+    // ✅ 處理鍵盤輸入後按 Enter
+    dropZone.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const text = dropZone.innerText.trim();
+        if (text) {
+          saveToFirebase({ type: "text", content: text });
+          dropZone.innerHTML = "";
         }
       }
     });
 
-    // 初始化
-    loadRecords();
+    function saveToFirebase(data) {
+      db.ref("clipboard").push({
+        timestamp: Date.now(),
+        ...data
+      });
+    }
+
+    // ✅ 讀取歷史紀錄
+    db.ref("clipboard").on("value", (snapshot) => {
+      historyDiv.innerHTML = "";
+      const data = snapshot.val();
+      if (!data) return;
+      const entries = Object.entries(data).reverse(); // 新的在前
+      entries.forEach(([id, entry], index) => {
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `<strong>#${entries.length - index}</strong><br>`;
+        if (entry.type === "text") {
+          div.innerHTML += `<p>${entry.content}</p>`;
+        } else if (entry.type === "image") {
+          div.innerHTML += `<img src="${entry.content}">`;
+        }
+        const btn = document.createElement("button");
+        btn.className = "delete-btn";
+        btn.textContent = "✕";
+        btn.onclick = () => db.ref("clipboard/" + id).remove();
+        div.appendChild(btn);
+        historyDiv.appendChild(div);
+      });
+    });
+
+    // ✅ 顯示 QRCode
+    QRCode.toCanvas(document.getElementById("qrcode"), window.location.href, function(error) {
+      if (error) console.error(error);
+    });
   </script>
 </body>
 </html>
